@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const ejs = require('ejs');
 const mongoose = require('mongoose');
-const encrypt = require('mongoose-encryption');
+const md5 = require('md5');
 
 const app = express();
 app.use(express.urlencoded({extended: true}));
@@ -10,15 +10,11 @@ app.use(express.static('public'));
 app.set('view engine', 'ejs');
 
 mongoose.connect(process.env.DB_ACCESS_URL, {useNewUrlParser: true, useUnifiedTopology: true});
-
 const userSchema = new mongoose.Schema({
   email: String,
   password: String
 });
-userSchema.plugin(encrypt, { secret: process.env.SECRET , encryptedFields: ['password'] });
-
 const User = mongoose.model('User', userSchema);
-
 
 app.get("/", (req, res) => {
   res.render('home');
@@ -35,7 +31,7 @@ app.get("/register", (req, res) => {
 app.post("/register", (req, res) => {
   const user = new User({
     email: req.body.username,
-    password: req.body.password
+    password: md5(req.body.password)
   });
   user.save((err) => {
     if ( !err ) {
@@ -51,7 +47,7 @@ app.post("/login", (req, res) => {
     { email: req.body.username },
     (err, foundUser) => {
       if ( !err ) {
-        if ( foundUser.password === req.body.password ) {
+        if ( foundUser.password === md5(req.body.password) ) {
           res.render('secrets');
         } else {
           console.log("user not found.");
@@ -62,12 +58,6 @@ app.post("/login", (req, res) => {
     }
   );
 });
-
-
-
-
-
-
 
 app.listen(3000, () => {
   console.log("Application is running");
